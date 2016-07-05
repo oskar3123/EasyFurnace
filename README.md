@@ -5,7 +5,8 @@
 Is the filling of furnaces to much of a pain? Then EasyFurnace is for you, all you have to do is drag some metal or sulfur into the furnace and sit back to watch the magic.
 
 ## Config
-The config file for the plugin is located in Oxide's default config file folder ([serverroot]/server/[serveridentity]/oxide/config)
+The config file for the plugin is located in Oxide's default config file folder ([serverroot]/server/[serveridentity]/oxide/config).
+
 The default configuration:
 ```json
 {
