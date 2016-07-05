@@ -4,7 +4,7 @@ using System;
 
 namespace Oxide.Plugins
 {
-    [Info("EasyFurnace", "oskar3123", "1.1.1", ResourceId = 1191)]
+    [Info("EasyFurnace", "oskar3123", "1.1.2", ResourceId = 1191)]
     class EasyFurnace : RustPlugin
     {
         class Cfg
@@ -86,12 +86,12 @@ namespace Oxide.Plugins
         {
             if (item.info.shortname != "metal.ore" && item.info.shortname != "sulfur.ore") return;
 
-            if (item.amount < 100) return;
-
             if (container.itemList.Count() > 1) return;
 
             int cap = container.capacity;
             if (cap != 6 && cap != 18) return;
+
+            if (item.amount < cap) return;
 
             int oresize = cap == 6 ?
                 (item.info.shortname == "metal.ore" ? Cfg.furnaceMetalOres : Cfg.furnaceSulfurOres) :
@@ -102,19 +102,10 @@ namespace Oxide.Plugins
             int outputsize = cap == 6 ?
                 (item.info.shortname == "metal.ore" ? Cfg.furnaceMetalOutput : Cfg.furnaceSulfurOutput) :
                 (item.info.shortname == "metal.ore" ? Cfg.largeFurnaceMetalOutput : Cfg.largeFurnaceSulfurOutput);
+            double woodfactor = item.info.shortname == "metal.ore" ? 5D : 2.5D;
+            string outputname = item.info.shortname == "metal.ore" ? "metal.fragments" : "sulfur";
 
-            if (cap == 6 &&
-                (item.info.shortname == "metal.ore" ? Cfg.furnaceMetalOres : Cfg.furnaceSulfurOres) +
-                (item.info.shortname == "metal.ore" ? Cfg.furnaceMetalWood : Cfg.furnaceSulfurWood) +
-                (item.info.shortname == "metal.ore" ? Cfg.furnaceMetalOutput : Cfg.furnaceSulfurOutput)
-            > 6)
-                return;
-            if (cap == 18 &&
-                (item.info.shortname == "metal.ore" ? Cfg.largeFurnaceMetalOres : Cfg.largeFurnaceSulfurOres) +
-                (item.info.shortname == "metal.ore" ? Cfg.largeFurnaceMetalWood : Cfg.largeFurnaceSulfurWood) +
-                (item.info.shortname == "metal.ore" ? Cfg.largeFurnaceMetalOutput : Cfg.largeFurnaceSulfurOutput)
-            > 18)
-                return;
+            if (oresize + woodsize + outputsize > cap) return;
 
             BaseOven furnace = null;
             foreach (BaseOven key in furnaceCache.Keys)
@@ -134,10 +125,10 @@ namespace Oxide.Plugins
                 if (itm.info.shortname == item.info.shortname)
                     orecount += itm.amount;
             orecount += item.amount;
-            if (orecount > oresize * GetStackSize(item.info.shortname == "metal.ore" ? "metal.ore" : "sulfur.ore"))
-                orecount = oresize * GetStackSize(item.info.shortname == "metal.ore" ? "metal.ore" : "sulfur.ore");
+            if (orecount > oresize * GetStackSize(outputname))
+                orecount = oresize * GetStackSize(outputname);
 
-            int woodToRetain = (int)Math.Ceiling((orecount / oresize) * (item.info.shortname == "metal.ore" ? 5D : 2.5D));
+            int woodToRetain = (int)Math.Ceiling((orecount / oresize) * woodfactor);
             int woodMaxStack = GetStackSize("wood");
             if (woodToRetain > woodMaxStack * woodsize)
                 woodToRetain = woodMaxStack * woodsize;
@@ -150,7 +141,7 @@ namespace Oxide.Plugins
             }
 
             int retainedAmount;
-            retainedAmount = RemoveItemsFromInventory(player, item.info.shortname == "metal.ore" ? "metal.fragments" : "sulfur", outputsize);
+            retainedAmount = RemoveItemsFromInventory(player, outputname, outputsize);
             if (retainedAmount < outputsize)
             {
                 ItemManager.Create(ItemManager.FindItemDefinition("wood"), retainedWood).MoveToContainer(player.inventory.containerMain);
@@ -168,9 +159,9 @@ namespace Oxide.Plugins
             }
 
             for (int i = 0; i < outputsize; i++)
-                ItemManager.Create(ItemManager.FindItemDefinition(item.info.shortname == "metal.ore" ? "metal.fragments" : "sulfur"), 1).MoveToContainer(container, -1, false);
+                ItemManager.Create(ItemManager.FindItemDefinition(outputname), 1).MoveToContainer(container, -1, false);
 
-            RemoveItemsFromInventory(player, item.info.shortname == "metal.ore" ? "metal.ore" : "sulfur.ore", orecount);
+            RemoveItemsFromInventory(player, item.info.shortname, orecount);
 
             int amountPerStack = orecount / oresize;
             Item[] oresToAdd = new Item[oresize];
@@ -182,7 +173,7 @@ namespace Oxide.Plugins
                     tmpCnt++;
                 tmpCnt += amountPerStack;
                 extras--;
-                oresToAdd[i] = ItemManager.Create(ItemManager.FindItemDefinition(item.info.shortname == "metal.ore" ? "metal.ore" : "sulfur.ore"), tmpCnt);
+                oresToAdd[i] = ItemManager.Create(ItemManager.FindItemDefinition(item.info.shortname), tmpCnt);
             }
 
             foreach (Item oreToAdd in oresToAdd)
